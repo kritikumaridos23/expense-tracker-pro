@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{background:#f6f7fb;color:#1e293b;min-height:100vh}
+header{background:linear-gradient(90deg,#1e1b4b,#4338ca);color:white;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px #4338ca30}
+header h1{font-size:24px;font-weight:700;letter-spacing:.5px}
+header.right{display:flex;align-items:center;gap:12px}
+header.badge{background:#ffffff20;padding:6px 14px;border-radius:20px;font-size:13px}
+header button{background:#ff4d5a;border:none;color:white;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:600;transition:.2s}
+header button:hover{background:#ff2a3a}
+.container{max-width:1400px;margin:25px auto;padding:0 25px;display:grid;grid-template-columns:1.2fr.8fr;gap:22px}
+.card{background:white;border-radius:18px;padding:24px;box-shadow:0 8px 30px #00000007;border:1px solid #f1f5f9}
+.balance-card{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none}
+.balance-card h3{opacity:.9;font-size:13px;letter-spacing:1px;font-weight:500}
+.balance-card h1{font-size:42px;margin:8px 0 18px;font-weight:700}
+.income-expense{display:flex;gap:14px}
+.income-expense.box{flex:1;background:#ffffff18;backdrop-filter:blur(10px);border-radius:12px;padding:14px;text-align:center;border:1px solid #ffffff20}
+.income-expense.box div:first-child{font-size:11px;opacity:.9;letter-spacing:1px}
+.income-expense.box div:last-child{font-size:20px;font-weight:700;margin-top:4px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}
+.add-form label{font-size:13px;font-weight:500;color:#475569;margin:10px 0 6px;display:block}
+.add-form input,.add-form select{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #e2e8f0;font-size:14px;outline:none;transition:.2s;background:#f8fafc}
+.add-form input:focus,.add-form select:focus{border-color:#6366f1;background:white;box-shadow:0 0 0 4px #6366f114}
+.add-form button{margin-top:16px;width:100%;padding:13px;background:linear-gradient(90deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;transition:.2s;box-shadow:0 6px 16px #6366f140}
+.add-form button:hover{transform:translateY(-1px);box-shadow:0 10px 20px #6366f140}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #f1f5f9;transition:.15s}
+.history-item:hover{background:#f8fafc;border-radius:10px;padding-left:10px;padding-right:10px}
+.history-item.left b{font-size:14px}
+.history-item.left small{color:#94a3b8;font-size:12px}
+.history-item.right{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
+.delete-btn{background:#fef2f2;color:#ef4444;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:bold}
+.delete-btn:hover{background:#fee2e2}
+#msg{font-size:13px;text-align:center;margin-top:12px;font-weight:500}
+@media(max-width:900px){.container{grid-template-columns:1fr}.chart-grid{grid-template-columns:1fr}}
+</style>
+<script>const userId=localStorage.getItem('userId'); if(!userId) location.href='login.html';</script>
+</head>
+<body>
+<header>
+<h1>💸 Expense Tracker Pro</h1>
+<div class="right"><div class="badge" id="userNameDisplay">Hi</div><button onclick="logout()">Logout</button></div>
+</header>
+
+<div class="container">
+<div>
+<div class="card balance-card">
+<h3>YOUR BALANCE</h3>
+<h1 id="totalBalance">$0.00</h1>
+<div class="income-expense">
+<div class="box"><div>INCOME</div><div id="incomeAmount">$0.00</div></div>
+<div class="box"><div>EXPENSE</div><div id="expenseAmount">$0.00</div></div>
+</div>
+</div>
+
+<div class="chart-grid">
+<div class="card"><h3 style="font-size:14px;margin-bottom:12px">Income vs Expense</h3><canvas id="pieChart" height="180"></canvas></div>
+<div class="card"><h3 style="font-size:14px;margin-bottom:12px">Balance Trend</h3><canvas id="barChart" height="180"></canvas></div>
+</div>
+
+<div class="card"><h3 style="margin-bottom:10px">Recent History</h3><div id="historyList">Loading...</div></div>
+</div>
+
+<div>
+<div class="card add-form">
+<h3 style="margin-bottom:4px">Add Transaction</h3>
+<p style="font-size:12px;color:#94a3b8;margin-bottom:14px">MySQL me auto save hoga</p>
+<label>Title</label><input id="text" placeholder="e.g. Salary, Grocery">
+<label>Category</label>
+<select id="category"><option>Salary</option><option>Food</option><option>Shopping</option><option>Transport</option><option>Bills</option><option>Other</option></select>
+<label>Amount</label><input id="amount" type="number" placeholder="-500 for expense, 1000 for income">
+<label>Payment Method</label>
+<select id="paymentMethod"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank</option></select>
+<button onclick="addTransaction()">+ Add Transaction</button>
+<div id="msg"></div>
+</div>
+</div>
+</div>
+
+<script>
+document.getElementById('userNameDisplay').textContent='Hi, '+(localStorage.getItem('userName')||'User '+userId);
+function logout(){localStorage.clear();location.href='login.html';}
+let transactions=[], pieChart, barChart;
+
+function updateUI(){
+ let income=0,expense=0;
+ const list=document.getElementById('historyList'); list.innerHTML='';
+ if(transactions.length===0){ list.innerHTML='<p style="color:#94a3b8;text-align:center;padding:20px">No transactions yet</p>'; }
+ [...transactions].reverse().forEach(t=>{
+  const amt=t.amount||0;
+  if(amt>0) income+=amt; else expense+=Math.abs(amt);
+  const isInc=amt>0;
+  const div=document.createElement('div'); div.className='history-item';
+  div.innerHTML=`<div class="left"><b>${t.title}</b><br><small>${t.date||''} • ${t.category||''} • ${t.paymentMethod||''}</small></div><div class="right"><span style="color:${isInc?'#10b981':'#ef4444'}">${isInc?'+':''}$${amt}</span><button class="delete-btn" onclick="deleteExp(${t.id})">×</button></div>`;
+  list.appendChild(div);
+ });
+ document.getElementById('incomeAmount').textContent='$'+income.toFixed(2);
+ document.getElementById('expenseAmount').textContent='$'+expense.toFixed(2);
+ document.getElementById('totalBalance').textContent='$'+(income-expense).toFixed(2);
+ updateCharts(income,expense);
+}
+
+function updateCharts(income,expense){
+ const pieCtx=document.getElementById('pieChart');
+ const barCtx=document.getElementById('barChart');
+ if(pieChart) pieChart.destroy();
+ if(barChart) barChart.destroy();
+ pieChart=new Chart(pieCtx,{type:'doughnut',data:{labels:['Income','Expense'],datasets:[{data:[income||1,expense||1],backgroundColor:['#10b981','#ef4444'],borderWidth:0}]},options:{plugins:{legend:{position:'bottom'}},cutout:'68%'}});
+ barChart=new Chart(barCtx,{type:'bar',data:{labels:['Income','Expense','Balance'],datasets:[{data:[income,expense,income-expense],backgroundColor:['#10b981','#ef4444','#6366f1'],borderRadius:8}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}}}}});
+}
+
+async function loadExpenses(){
+ try{ const res=await fetch(`/api/expenses/user/${userId}`); if(res.ok){ transactions=await res.json(); updateUI(); } }catch(e){ console.error(e); }
+}
+async function addTransaction(){
+ const title=document.getElementById('text').value.trim();
+ const amount=parseFloat(document.getElementById('amount').value);
+ const category=document.getElementById('category').value;
+ const paymentMethod=document.getElementById('paymentMethod').value;
+ const msg=document.getElementById('msg');
+ if(!title||isNaN(amount)){ msg.style.color='#ef4444'; msg.textContent='Enter title & amount'; return; }
+ const payload={ title, amount, userId:parseInt(userId), date:new Date().toISOString().split('T')[0], category, paymentMethod };
+ try{
+  const res=await fetch('/api/expenses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(res.ok){ const saved=await res.json(); transactions.push(saved); updateUI(); document.getElementById('text').value=''; document.getElementById('amount').value=''; msg.style.color='#10b981'; msg.textContent='✔ Saved to MySQL!'; setTimeout(()=>msg.textContent='',2000); }
+ }catch(e){ msg.style.color='#ef4444'; msg.textContent='Error: '+e.message; }
+}
+async function deleteExp(id){ await fetch(`/api/expenses/${id}`,{method:'DELETE'}); transactions=transactions.filter(t=>t.id!==id); updateUI(); }
+loadExpenses();
+</script>
+</body>
+</html>

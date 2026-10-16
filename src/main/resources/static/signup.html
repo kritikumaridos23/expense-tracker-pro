@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up - Expense Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f4f6fb;color:#222;display:flex;align-items:center;justify-content:center;min-height:100vh}header{position:fixed;top:0;left:0;right:0;background:#242b45;color:white;padding:22px 35px}header h1{font-size:26px}.panel{background:white;padding:30px;border-radius:12px;box-shadow:0 3px 12px #0000000a;width:100%;max-width:420px;margin-top:60px}.panel h2{margin-bottom:20px}label{display:block;margin-bottom:7px;font-weight:bold;font-size:14px}input,button{width:100%;padding:12px;border-radius:7px;border:1px solid #d8dce5;font-size:15px;margin-bottom:16px}button{background:#5b5ce2;color:white;border:none;cursor:pointer;font-weight:bold}button:hover{background:#4546c8}a{color:#5b5ce2;text-decoration:none;font-size:14px}#msg{margin-top:10px;font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+<header><h1>Expense Tracker</h1></header>
+<div class="panel">
+<h2>Create Account</h2>
+<input id="name" placeholder="Full Name (e.g. Kriti)" required>
+<input id="email" type="email" placeholder="Email (kriti@example.com)" required>
+<input id="password" type="password" placeholder="Password (test123)" required>
+<button onclick="signup()">Sign Up</button>
+<div id="msg"></div>
+<p style="text-align:center;margin-top:15px;font-size:14px">Already have account? <a href="login.html">Login</a></p>
+</div>
+<script>
+async function signup(){
+ const msg=document.getElementById('msg');
+ msg.textContent='Loading...';
+ try{
+  const res=await fetch('/api/auth/signup',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({
+    name:document.getElementById('name').value,
+    email:document.getElementById('email').value,
+    password:document.getElementById('password').value
+   })
+  });
+  const data=await res.json();
+  if(res.ok){
+   msg.style.color='#15966a';
+   msg.textContent='Signup Success! UserID: '+data.userId+' - Redirecting to login...';
+   setTimeout(()=>{window.location.href='login.html'},1500);
+  } else {
+   msg.style.color='#e14b58';
+   msg.textContent=data.message||'Signup failed';
+  }
+ } catch(e){
+  msg.style.color='#e14b58';
+  msg.textContent='Error: Backend not running? '+e.message;
+ }
+}
+</script>
+</body>
+</html>
